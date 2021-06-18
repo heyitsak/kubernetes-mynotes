@@ -4,9 +4,7 @@ Lab Setup:
 
 1) Launch '3' t2 instances on AWS with security groups 'default (VPC)' & 'custom group (for external port accesses)'. 
 
-Name one servers as 'master'
-Name second server as 'worker1'
-Name third server as 'worker2'
+2) Name one servers as 'master', second server as 'worker1', third server as 'worker2'
 
 Once instances are setup for forming a cluster, proceed with docker installation & Kubeadm setup. 
 
