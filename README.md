@@ -6,7 +6,7 @@
 
 2) Name one servers as 'master', second server as 'worker1', third server as 'worker2'
 
-Once instances are setup for forming a cluster, proceed with docker installation & Kubeadm setup. 
+Once instances are setup for forming a cluster, proceed with docker installation & Kubeadm setup on all 3 aws instances. 
 
 #### Step 1: Install Docker CE
 
