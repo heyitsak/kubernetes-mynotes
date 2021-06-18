@@ -8,14 +8,14 @@
 
 Once instances are setup for forming a cluster, proceed with docker installation & Kubeadm setup. 
 
-Step 1: Install Docker CE
+#### Step 1: Install Docker CE
 
 Installation for Ubuntu, as per:
 https://docs.docker.com/engine/install/ubuntu/
 
 curl -o- https://raw.githubusercontent.com/heyitsak/kubernetes-zynux/main/docker-ce-install.sh | bash 
 
-Step 2: 
+#### Step 2: Installing kubeadm, kubelet and kubectl
 
 Following instructions outlined below doc to setup & install Kubeadm
 https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
