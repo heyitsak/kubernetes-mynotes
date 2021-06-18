@@ -19,3 +19,5 @@ curl -o- https://raw.githubusercontent.com/heyitsak/kubernetes-zynux/main/docker
 
 Following instructions outlined below doc to setup & install Kubeadm
 https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+
+curl -o- https://raw.githubusercontent.com/heyitsak/kubernetes-zynux/main/Kubeadm-install.sh | bash
