@@ -1,7 +1,5 @@
 # kubernetes-zynux
 
-###### DAY 1: 
-
 #### Creating a lab Setup for kubernetes cluster:
 
 1) Launch '3' t2 instances on AWS with security groups 'default (VPC)' & 'custom group (for external port accesses)'. The default VPC group will make sure that all 3 instances can comunicate to each other. 
@@ -24,14 +22,16 @@ https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-ku
 
 curl -o- https://raw.githubusercontent.com/heyitsak/kubernetes-zynux/main/Kubeadm-install.sh | bash
 
-###### DAY 2: 
+
+--------------------------------------------------  DAY 2: --------------------------------------------------
+
 
 Once the step1,2 is completed, we can start by running 'kubeadm init' to start creating a cluster. 
 
 kubeadm init -h
 
 * kubeadm init phase enables you to invoke atomic steps of the bootstrap process. Running 'kubeadm init' is the first step to initialize and to create a cluster. 
-* It will auto install required containersto make a cluster. 
+* It will auto install all containers that are required to create a cluster. 
 
 kubectl 
 
