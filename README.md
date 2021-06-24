@@ -236,12 +236,12 @@ kubectl describe pod myapp
 
 #### Creating a POD with YAML:
 
-Kind		Version/api
------		
-Pod		v1
-service		v1
-ReplicaSet	apps/v1
-Deployment	apps/v1
+| Kind | Version/api |
+| --- | --- |		
+| Pod | v1 |
+| service | v1 |
+| ReplicaSet | apps/v1 |
+| Deployment | apps/v1 |
 
 Example yaml file: demo-app.yaml
 
@@ -327,12 +327,15 @@ To increase any replicas for any exisisting project/POD. Example if you suddenly
 
 Method 1: By re-editing the yaml file which you used to create POD. Increase the replica field from 3 to 6. Then do, 
 
+```
 kubectl replace -f your.yaml
 kubectl get pods -o wide
+```
 
 Method 2: Without editing your yaml file. 
-
+```
 kubectl scale -replicas-6 -f your.yaml
+```
 
 Additionally you can add '--record' line to above cmd to record your changes to logs. 
 
