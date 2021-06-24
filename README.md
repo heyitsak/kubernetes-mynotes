@@ -36,11 +36,27 @@ kubeadm init -h
 kubectl 
 
 * To administer cluster
-
-kubectl get 
+* allows you to run commands against Kubernetes clusters
+* To deploy applications, inspect and manage cluster resources, and view logs.
 
 kubeadm 
 
 * Its like a user
+* Kubeadm is a tool built to provide kubeadm init and kubeadm join as best-practice "fast paths" for creating Kubernetes clusters
+* it runs on each node, and basically creates and then talks to the Kubernetes API.
+
+##### Kubernetes Architecture: 
+
+Master node
+Worker node
+
+
+
+--------------------------------------------------  DAY 3: --------------------------------------------------
+
+#### POD
+
+
+--------------------------------------------------  DAY 4: --------------------------------------------------
 
 
