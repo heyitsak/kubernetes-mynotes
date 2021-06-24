@@ -135,6 +135,8 @@ weave-net-brxk9                  2/2     Running   5          23h
 weave-net-bsgkx                  2/2     Running   3          22h
 weave-net-gt2mn                  2/2     Running   3          22h
 root@master:~#
+
+root@master:~# kubectl get pods --all-namespaces     // To get info on all namespaces
 ```
 
 You can also add '-o wide' to your command to show extended details such as node details and IP's etc. 
@@ -163,7 +165,7 @@ N/w policy are stored in --> Kube-proxy
 ##### Kubernetes Architecture: 
 
 * Master node
-* Worker node   // Where containers are hosted
+* Worker node   (Where containers are hosted)
 
 Kubelet
 
@@ -214,6 +216,8 @@ myapp   1/1     Running   0          18s     10.38.0.1   worker2   <none>       
 nginx   1/1     Running   0          2m11s   10.36.0.0   worker1   <none>           <none>
 ```
 
+As we can see a POD is created in  worker1 & another in worker2. Here scheduler decides to which node the POD must be created. 
+
 Deleting a POD
 
 ```
@@ -225,6 +229,111 @@ myapp   1/1     Running   0          2m45s
 root@master:~#
 ```
 
+To get more details about a POD, 
+
+kubectl describe pod myapp
+
+
+#### Creating a POD with YAML:
+
+Kind		Version/api
+-----		
+Pod		v1
+service		v1
+ReplicaSet	apps/v1
+Deployment	apps/v1
+
+Example yaml file: demo-app.yaml
+
+To run:
+
+kubectl create -f demo-app.yaml
+kubectl get pods -o wide
+
+#### Additional: --dry-run
+
+* You can use the --dry-run=client flag to preview the object that would be sent to your cluster, without really submitting it. 
+* Always use --dry-run when you want to generate any yaml file for a running pod or when creating one (if you are testing). 
+* It displays any errors before actually executing the actual run cmd. 
+
+```
+root@master:~# kubectl run myapp --image=nginx:latest --dry-run=client
+pod/myapp created (dry run)
+root@master:~# kubectl get pods
+No resources found in default namespace.
+root@master:~#
+```
+
+Usecase 2: If you would like to create/generate an yaml file for above example, 
+
+```
+root@master:~# kubectl run myapp --image=nginx:latest --dry-run=client -o yaml > demo-pod.yaml
+root@master:~# less demo-pod.yaml
+```
+
+
 --------------------------------------------------  DAY 4: --------------------------------------------------
 
+#### ReplicationController
 
+* High availability
+* Scaling can be done
+* Loadbalancing setup
+* Adding your pod to ReplicationController will make sure to create new/multiple replicas of pod automatically. 
+
+```
+apiVersion: v1
+kind: ReplicationController
+metadata:		  #Metadata & labels for RC
+  name: nginx
+  labels:
+    app: myapp
+    type: front-end
+spec:                     #ReplicaController spec
+  replicas: 3             #How many replicas to create
+  template:		  #Template yaml for your POD creation
+    metadata:
+      name: nginx
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+```
+
+#### ReplicaSet
+
+* The main difference or feature about this is in the 'selector'. It supports lot of customization than the RC. 
+* Selector > creates replicas based on labels. 
+
+```
+spec:
+  # modify replicas according to your case
+  replicas: 3
+  selector:
+    matchLabels:
+      type: front-end
+```
+
+* Here replicas will be created bases on label 'type:front-end'. If already there's any existing POD which has a label 'type:front-end' then the ReplicaSet will only create two replicas instead of 3. 
+
+kubectl create -f your.yaml (replicaset yaml file)
+kubectl get replicaset 
+
+#### Scaling
+
+To increase any replicas for any exisisting project/POD. Example if you suddenly decide that replicas for POD should be 6 instead of 3, then you can achive this by multiple methods. 
+
+Method 1: By re-editing the yaml file which you used to create POD. Increase the replica field from 3 to 6. Then do, 
+
+kubectl replace -f your.yaml
+kubectl get pods -o wide
+
+Method 2: Without editing your yaml file. 
+
+kubectl scale -replicas-6 -f your.yaml
+
+Additionally you can add '--record' line to above cmd to record your changes to logs. 
+
+--------------------------------------------------  DAY 5: --------------------------------------------------
