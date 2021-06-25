@@ -321,7 +321,7 @@ spec:
 kubectl create -f your.yaml (replicaset yaml file)
 kubectl get replicaset 
 
-#### Scaling
+#### Manual Scaling
 
 To increase any replicas for any exisisting project/POD. Example if you suddenly decide that replicas for POD should be 6 instead of 3, then you can achive this by multiple methods. 
 
