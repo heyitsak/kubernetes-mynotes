@@ -162,7 +162,7 @@ Notes:
 
 N/w policy are stored in --> Kube-proxy
 
-##### Kubernetes Architecture: 
+#### Kubernetes Architecture: 
 
 * Master node
 * Worker node   (Where containers are hosted)
@@ -180,7 +180,7 @@ ETCD
 
 --------------------------------------------------  DAY 3: --------------------------------------------------
 
-#### POD
+### POD
 
 * Single/multiple applications on POD
 * It contains container (one or more)
@@ -274,7 +274,7 @@ root@master:~# less demo-pod.yaml
 
 --------------------------------------------------  DAY 4: --------------------------------------------------
 
-#### ReplicationController
+### ReplicationController
 
 * High availability
 * Scaling can be done
@@ -302,7 +302,7 @@ spec:                     #ReplicaController spec
         image: nginx
 ```
 
-#### ReplicaSet
+### ReplicaSet
 
 * The main difference or feature about this is in the 'selector'. It supports lot of customization than the RC. 
 * Selector > creates replicas based on labels. 
@@ -321,7 +321,7 @@ spec:
 kubectl create -f your.yaml (replicaset yaml file)
 kubectl get replicaset 
 
-#### Manual Scaling
+### Manual Scaling
 
 To increase any replicas for any exisisting project/POD. Example if you suddenly decide that replicas for POD should be 6 instead of 3, then you can achive this by multiple methods. 
 
@@ -332,11 +332,31 @@ kubectl replace -f your.yaml
 kubectl get pods -o wide
 ```
 
-Method 2: Without editing your yaml file. 
+Method 2: Changing replica values without having to edit your yaml file. 
 ```
-kubectl scale -replicas-6 -f your.yaml
+kubectl scale -replicas=6 -f your.yaml --record
 ```
 
 Additionally you can add '--record' line to above cmd to record your changes to logs. 
 
+Method 3: If we have to create a replicaset of 10 pods. Modifying a live or running POD.
+```
+kubectl edit replicaset.apps myapp-rs
+```
+
+To backup a configuration of a replicaset running in a cluster. 
+```
+kubectl get rs  -o yaml > nameof.yaml
+
+or
+
+kubectl get rs myapp-rs -o yaml > > nameof.yaml
+```
+
 --------------------------------------------------  DAY 5: --------------------------------------------------
+
+### Deployment
+* More features than replicaset
+* Rollback support
+* Rolling update possible
+* It includes replicaset (The pods will be created inside the replicaset here)
