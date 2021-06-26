@@ -306,6 +306,7 @@ spec:                     #ReplicaController spec
 
 * The main difference or feature about this is in the 'selector'. It supports lot of customization than the RC. 
 * Selector > creates replicas based on labels. 
+* A ReplicaSet ensures that a specified number of pod replicas are running at any given time.
 
 ```
 spec:
@@ -335,6 +336,10 @@ kubectl get pods -o wide
 Method 2: Changing replica values without having to edit your yaml file. 
 ```
 kubectl scale -replicas=6 -f your.yaml --record
+
+root@master:~# kubectl get rs
+NAME                  DESIRED   CURRENT   READY   AGE
+rs-demo.example.com   6         6         6       5m55s
 ```
 
 Additionally you can add '--record' line to above cmd to record your changes to logs. 
@@ -360,3 +365,119 @@ kubectl get rs myapp-rs -o yaml > > nameof.yaml
 * Rollback support
 * Rolling update possible
 * It includes replicaset (The pods will be created inside the replicaset here)
+* A Deployment runs multiple replicas of your application and automatically replaces any instances that fail or become unresponsive.
+* A ReplicaSet ensures that a specified number of pod replicas are running at any given time. However, a Deployment is a higher-level concept that manages ReplicaSets and provides declarative updates to Pods along with a lot of other useful features.
+
+```
+root@master:~# kubectl create -f deployment-example.yaml
+
+root@master:~# kubectl get deployment.apps
+NAME                          READY   UP-TO-DATE   AVAILABLE   AGE
+deployment-demo.example.com   3/3     3            3           73s
+
+root@master:~# kubectl get pods
+NAME                                           READY   STATUS    RESTARTS   AGE
+deployment-demo.example.com-57686d7bf4-g6jpq   1/1     Running   0          46s
+deployment-demo.example.com-57686d7bf4-qc4l6   1/1     Running   0          46s
+deployment-demo.example.com-57686d7bf4-rtx7n   1/1     Running   0          46s
+```
+
+To see the ReplicaSet (rs) created by the Deployment, run kubectl get rs.
+```
+root@master:~# kubectl get rs
+NAME                                     DESIRED   CURRENT   READY   AGE
+deployment-demo.example.com-57686d7bf4   3         3         3       3m52s
+
+root@master:~# kubectl get rc           // No ReplicaController created. Deployment only creates RS
+No resources found in default namespace.
+
+root@master:~# kubectl get pods
+NAME                                           READY   STATUS    RESTARTS   AGE
+deployment-demo.example.com-57686d7bf4-g6jpq   1/1     Running   0          3m59s
+deployment-demo.example.com-57686d7bf4-qc4l6   1/1     Running   0          3m59s
+deployment-demo.example.com-57686d7bf4-rtx7n   1/1     Running   0          3m59s
+```
+
+#### To see the labels automatically generated for each Pod,
+```
+root@master:~# kubectl get pods --show-labels
+NAME                                           READY   STATUS    RESTARTS   AGE     LABELS
+deployment-demo.example.com-57686d7bf4-g6jpq   1/1     Running   0          5m29s   app=myapp3,pod-template-hash=57686d7bf4,type=front-end
+deployment-demo.example.com-57686d7bf4-qc4l6   1/1     Running   0          5m29s   app=myapp3,pod-template-hash=57686d7bf4,type=front-end
+deployment-demo.example.com-57686d7bf4-rtx7n   1/1     Running   0          5m29s   app=myapp3,pod-template-hash=57686d7bf4,type=front-end
+```
+
+To check the labels for deployment/replicaset,
+```
+root@master:~# kubectl get deployment.apps --show-labels
+NAME                          READY   UP-TO-DATE   AVAILABLE   AGE     LABELS
+deployment-demo.example.com   3/3     3            3           7m18s   app=myapp3-deployment-demo,type=front-end
+```
+
+### Namespaces
+
+* Kubernetes supports multiple virtual clusters backed by the same physical cluster. These virtual clusters are called namespaces.
+* Helpful when different teams or projects share a Kubernetes cluster.
+* Any number of namespaces are supported within a cluster, each logically separated from others but with the ability to communicate with each other.
+* Project isolation can be done using Namespaces (Example namespace for adminstrators[web] & namespace for devs[mysql, db])
+* Namespaces are a way to divide cluster resources between multiple users (via resource quota).
+```
+root@master:~# kubectl get namespaces
+NAME              STATUS   AGE
+default           Active   3d2h
+kube-node-lease   Active   3d2h
+kube-public       Active   3d2h
+kube-system       Active   3d2h
+```
+
+To see pods created in specific namespaces, 
+```
+root@master:~# kubectl get pods --namespace default
+NAME                                           READY   STATUS    RESTARTS   AGE
+deployment-demo.example.com-57686d7bf4-g6jpq   1/1     Running   0          15m
+deployment-demo.example.com-57686d7bf4-qc4l6   1/1     Running   0          15m
+deployment-demo.example.com-57686d7bf4-rtx7n   1/1     Running   0          15m
+
+root@master:~# kubectl get pods --namespace kube-system
+NAME                             READY   STATUS    RESTARTS   AGE
+coredns-558bd4d5db-4jj4z         1/1     Running   4          3d2h
+coredns-558bd4d5db-qjx56         1/1     Running   4          3d2h
+etcd-master                      1/1     Running   5          3d2h
+kube-apiserver-master            1/1     Running   7          3d2h
+kube-controller-manager-master   1/1     Running   27         3d2h
+kube-proxy-ljjbp                 1/1     Running   4          3d2h
+kube-proxy-rljj5                 1/1     Running   4          3d2h
+kube-proxy-zb2t7                 1/1     Running   5          3d2h
+kube-scheduler-master            1/1     Running   27         3d2h
+weave-net-brxk9                  2/2     Running   11         3d2h
+weave-net-bsgkx                  2/2     Running   9          3d2h
+weave-net-gt2mn                  2/2     Running   9          3d2h
+```
+
+Creating a namespace
+```
+root@master:~# kubectl create namespace dev
+namespace/dev created
+
+root@master:~# kubectl run nginx --image=nginx --namespace=dev
+pod/nginx created
+
+root@master:~# kubectl get pods --namespace=dev
+NAME    READY   STATUS    RESTARTS   AGE
+nginx   1/1     Running   0          14s
+```
+
+More details:
+https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+
+### Resource Quotas
+* When several users or teams share a cluster with a fixed number of nodes, there is a concern that one team could use more than its fair share of resources.
+* Resource quotas are a tool for administrators to address this concern.
+* Different teams work in different namespaces. 
+* The administrator creates one ResourceQuota for each namespace.
+* The name of a ResourceQuota object must be a valid DNS subdomain name.
+* https://kubernetes.io/docs/concepts/policy/resource-quotas/
+
+
+
+
