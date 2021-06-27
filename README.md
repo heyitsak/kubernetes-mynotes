@@ -476,8 +476,33 @@ https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 * Different teams work in different namespaces. 
 * The administrator creates one ResourceQuota for each namespace.
 * The name of a ResourceQuota object must be a valid DNS subdomain name.
-* https://kubernetes.io/docs/concepts/policy/resource-quotas/
 
+More details: https://kubernetes.io/docs/concepts/policy/resource-quotas/
+
+Example: One namespace for 'development team' & another name for 'Production'. Suppose you only want to give 2GB mem for development team & 4Gb mem for Production team. This can be acheived using creating two different namespaces for dev & prod - then set resource quota.
+
+```
+kubectl get ns
+kubectl create ns myns
+kubectl describe ns myns
+
+kubectl explain resourcequota
+
+create a yaml for resource quota
+
+kubectl apply -f quota-example.yaml --namespace=myns
+
+kubectl describe ns myns
+
+create a pod in ns
+
+kubectl get pods -n myns
+
+kubectl delete ResourceQuota --all
+```
+
+limits.cpu	Across all pods in a non-terminal state, the sum of CPU limits cannot exceed this value.
+requests.cpu	Across all pods in a non-terminal state, the sum of CPU requests cannot exceed this value.
 
 
 
