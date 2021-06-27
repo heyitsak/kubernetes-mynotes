@@ -6,7 +6,7 @@ metadata:
   app: myapp3-deployment-demo
   type: front-end
 spec:
- replicas: 3
+ replicas: 3      #tells deployment to create 3 replicas using below pod template matching labels
  selector:
   matchLabels:
    type: front-end
