@@ -504,5 +504,8 @@ kubectl delete ResourceQuota --all
 * limits.cpu	Across all pods in a non-terminal state, the sum of CPU limits cannot exceed this value.
 * requests.cpu	Across all pods in a non-terminal state, the sum of CPU requests cannot exceed this value.
 
+-------------------------------------------------- DAY 6: --------------------------------------------------
+
+
 
 
