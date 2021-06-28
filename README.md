@@ -481,28 +481,103 @@ More details: https://kubernetes.io/docs/concepts/policy/resource-quotas/
 
 Example: One namespace for 'development team' & another name for 'Production'. Suppose you only want to give 2GB mem for development team & 4Gb mem for Production team. This can be acheived using creating two different namespaces for dev & prod - then set resource quota.
 
+
 ```
-kubectl get ns
-kubectl create ns myns
-kubectl describe ns myns
+root@master:~# kubectl describe ns default
+Name:         default
+Labels:       kubernetes.io/metadata.name=default
+Annotations:  <none>
+Status:       Active
 
-kubectl explain resourcequota
+No resource quota.
 
-create a yaml for resource quota
+No LimitRange resource.
 
-kubectl apply -f quota-example.yaml --namespace=myns
+root@master:~# kubectl describe ns myns
+Name:         myns
+Labels:       kubernetes.io/metadata.name=myns
+Annotations:  <none>
+Status:       Active
 
-kubectl describe ns myns
+No resource quota.
 
-create a pod in ns
+No LimitRange resource.
+```
 
-kubectl get pods -n myns
+Getting man page for ResourceQuota in Kubernetes
 
-kubectl delete ResourceQuota --all
+```
+root@master:~# kubectl explain resourcequota
+```
+
+Now we can create a yaml file and set resource quota and limits for any given namespaces. 
+
+```
+root@master:~# kubectl create ns dev
+namespace/dev created
+root@master:~# kubectl create -f compute-quota.yaml
+resourcequota/compute-quota created
+root@master:~# kubectl describe ns dev
+Name:         dev
+Labels:       kubernetes.io/metadata.name=dev
+Annotations:  <none>
+Status:       Active
+
+Resource Quotas
+  Name:            compute-quota
+  Resource         Used  Hard
+  --------         ---   ---
+  limits.cpu       0     6
+  limits.memory    0     1Gi
+  pods             0     5
+  requests.cpu     0     3
+  requests.memory  0     900m
+
+No LimitRange resource.
+
+OR
+
+root@master:~# kubectl get resourcequotas -n dev
+NAME            AGE     REQUEST                                                 LIMIT
+compute-quota   3m28s   pods: 0/5, requests.cpu: 0/3, requests.memory: 0/900m   limits.cpu: 0/6, limits.memory: 0/1Gi
 ```
 
 * limits.cpu	Across all pods in a non-terminal state, the sum of CPU limits cannot exceed this value.
 * requests.cpu	Across all pods in a non-terminal state, the sum of CPU requests cannot exceed this value.
+
+
+```
+root@master:~# kubectl describe ns dev
+Name:         dev
+Labels:       kubernetes.io/metadata.name=dev
+Annotations:  <none>
+Status:       Active
+
+Resource Quotas
+  Name:            compute-quota
+  Resource         Used  Hard
+  --------         ---   ---
+  limits.cpu       0     600m
+  limits.memory    0     1Gi
+  pods             0     5
+  requests.cpu     0     500m
+  requests.memory  0     900m
+
+No LimitRange resource.
+root@master:~#
+root@master:~# kubectl get resourcequota -n dev
+NAME            AGE   REQUEST                                                    LIMIT
+compute-quota   23m   pods: 0/5, requests.cpu: 0/500m, requests.memory: 0/900m   limits.cpu: 0/600m, limits.memory: 0/1Gi
+root@master:~#
+root@master:~# kubectl create -f pod-limit-example.yaml
+Error from server (Forbidden): error when creating "pod-limit-example.yaml": pods "myapp-pod-limit" is forbidden: exceeded quota: compute-quota, requested: requests.memory=150Mi, used: requests.memory=0, limited: requests.memory=900m
+```
+
+Delete all resourcequota
+
+```
+root@master:~# kubectl delete ResourceQuota --all
+```
 
 -------------------------------------------------- DAY 6: --------------------------------------------------
 
