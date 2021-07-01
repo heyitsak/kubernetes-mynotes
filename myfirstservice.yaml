@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+ name: myfirstservice
+spec:
+ type: NodePort
+ ports:
+  - nodePort: 32000
+    port: 8000
+    targetPort: 80
+ selector:
+    type: front-end      #Inorder to link the service to a pod, the label given here should match any created pods
