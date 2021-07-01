@@ -581,6 +581,40 @@ root@master:~# kubectl delete ResourceQuota --all
 
 -------------------------------------------------- DAY 6: --------------------------------------------------
 
+### Services
+
+* A Service is defined using YAML (preferred) or JSON, like all Kubernetes objects.
+* It has a name, IP
+* Each Pod has a unique IP address, those IPs are not exposed outside the cluster without a Service. Services allow your applications to receive traffic. Services can be exposed in different ways by specifying a type in the ServiceSpec:
+
+##### Types:
+
+NodePort
+Cluster IP
+Load balancer
+
+![Screenshot 2021-07-01 at 6 01 44 PM](https://user-images.githubusercontent.com/29716063/124124841-8b2f1400-da96-11eb-9adc-dcd73fd4248e.png)
+
+#### NodePort
+
+* A NodePort is an open port on every node of your cluster.
+* Kubernetes transparently routes incoming traffic on the NodePort to your service, even if your application is running on a different node.
+* NodePort is assigned from a pool of cluster-configured NodePort ranges (typically 30000–32767).
+
+![Screenshot 2021-07-01 at 6 09 15 PM](https://user-images.githubusercontent.com/29716063/124125752-99316480-da97-11eb-8933-3e77285ce341.png)
+
+To link the above service to any POD, we can do it using selector & label.
+
+![Screenshot 2021-07-01 at 6 11 20 PM](https://user-images.githubusercontent.com/29716063/124125964-cda52080-da97-11eb-86a1-e1b6a41130d3.png)
+
+Now create the service,
+
+![Screenshot 2021-07-01 at 6 12 44 PM](https://user-images.githubusercontent.com/29716063/124126188-0d6c0800-da98-11eb-8adb-5f23cdefdf16.png)
+
+
+
+
+-------------------------------------------------- DAY 7: --------------------------------------------------
 
 
 
