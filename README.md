@@ -690,6 +690,8 @@ Now we can access our app using the NodeIP:32689 port mention in above snippet.
 
 ### LoadBalancer
 
+To be updated...!!!!
+
 ### How services work?
 
 ![Screenshot 2021-07-01 at 6 01 44 PM](https://user-images.githubusercontent.com/29716063/124124841-8b2f1400-da96-11eb-9adc-dcd73fd4248e.png)
