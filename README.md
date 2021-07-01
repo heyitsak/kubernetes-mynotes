@@ -589,13 +589,63 @@ root@master:~# kubectl delete ResourceQuota --all
 
 ##### Types:
 
-NodePort
 Cluster IP
+NodePort
 Load balancer
 
-![Screenshot 2021-07-01 at 6 01 44 PM](https://user-images.githubusercontent.com/29716063/124124841-8b2f1400-da96-11eb-9adc-dcd73fd4248e.png)
+### Cluster IP
 
-#### NodePort
+* Accessing the content within the cluster
+
+```
+root@master:~# kubectl get svc
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   7d22h
+
+Creating a POD & Accessing via port within cluster:
+
+root@master:~# kubectl create -f pod-creation-example.yaml
+pod/pod-creation.example.com created
+
+root@master:~# kubectl get pods
+NAME                       READY   STATUS    RESTARTS   AGE
+pod-creation.example.com   1/1     Running   0          2m15s
+
+root@master:~# kubectl expose pod pod-creation.example.com --port=8000 --target-port=80 --name myfirstservice
+service/myfirstservice exposed
+
+root@master:~# kubectl get svc
+NAME             TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+kubernetes       ClusterIP   10.96.0.1        <none>        443/TCP    7d23h
+myfirstservice   ClusterIP   10.100.118.226   <none>        8000/TCP   7s
+
+root@master:~# kubectl describe svc myfirstservice
+Name:              myfirstservice
+Namespace:         default
+Labels:            app=myapp1
+                   type=front-end
+Annotations:       <none>
+Selector:          app=myapp1,type=front-end
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.100.118.226
+IPs:               10.100.118.226
+Port:              <unset>  8000/TCP
+TargetPort:        80/TCP
+Endpoints:         10.38.0.1:80
+Session Affinity:  None
+Events:            <none>
+
+root@master:~# curl http://10.100.118.226:8000
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+```
+
+### NodePort
 
 * A NodePort is an open port on every node of your cluster.
 * Kubernetes transparently routes incoming traffic on the NodePort to your service, even if your application is running on a different node.
@@ -612,7 +662,108 @@ Now create the service,
 ![Screenshot 2021-07-01 at 6 12 44 PM](https://user-images.githubusercontent.com/29716063/124126188-0d6c0800-da98-11eb-8adb-5f23cdefdf16.png)
 
 
+Exposing a NodePort via adhoc instead of using yaml. 
 
+```
+root@master:~# kubectl get pods -o wide
+NAME                       READY   STATUS    RESTARTS   AGE   IP          NODE      NOMINATED NODE   READINESS GATES
+pod-creation.example.com   1/1     Running   0          15m   10.38.0.1   worker2   <none>           <none>
+
+root@master:~# kubectl get svc -o wide
+NAME             TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE     SELECTOR
+kubernetes       ClusterIP   10.96.0.1        <none>        443/TCP    7d23h   <none>
+myfirstservice   ClusterIP   10.100.118.226   <none>        8000/TCP   11m     app=myapp1,type=front-end
+
+root@master:~# kubectl expose pod pod-creation.example.com --type=NodePort --port=8000 --target-port=80 --name myfirstservice1
+service/myfirstservice1 exposed
+
+root@master:~# kubectl get svc -o wide
+NAME              TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE     SELECTOR
+kubernetes        ClusterIP   10.96.0.1        <none>        443/TCP          7d23h   <none>
+myfirstservice    ClusterIP   10.100.118.226   <none>        8000/TCP         13m     app=myapp1,type=front-end
+myfirstservice1   NodePort    10.109.133.56    <none>        8000:32689/TCP   8s      app=myapp1,type=front-end
+```
+
+Now we can access our app using the NodeIP:32689 port mention in above snippet. 
+
+![Screenshot 2021-07-01 at 7 15 08 PM](https://user-images.githubusercontent.com/29716063/124135053-157c7580-daa1-11eb-96a1-d62a1dce5e0f.png)
+
+### LoadBalancer
+
+### How services work?
+
+![Screenshot 2021-07-01 at 6 01 44 PM](https://user-images.githubusercontent.com/29716063/124124841-8b2f1400-da96-11eb-9adc-dcd73fd4248e.png)
+
+Create a POD first and should have a label:
+
+```
+root@master:~# kubectl create -f pod-creation-example.yaml
+pod/pod-creation.example.com created
+
+root@master:~# kubectl get pods pod-creation.example.com --show-labels
+NAME                       READY   STATUS    RESTARTS   AGE   LABELS
+pod-creation.example.com   1/1     Running   0          85s   app=myapp1,type=front-end
+```
+
+Incase you forgot to set label for POD, then you can add label later using,
+```
+root@master:~# kubectl label pod pod-creation.example.com gender=male
+pod/pod-creation.example.com labeled
+
+root@master:~# kubectl get pods pod-creation.example.com --show-labels
+NAME                       READY   STATUS    RESTARTS   AGE   LABELS
+pod-creation.example.com   1/1     Running   0          13m   app=myapp1,gender=male,type=front-end
+```
+
+Now create a service and link it to POD using any labels,
+```
+root@master:~# kubectl create -f myfirstservice.yaml
+service/myfirstservice created
+
+root@master:~# kubectl get svc -o wide
+NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE     SELECTOR
+kubernetes       ClusterIP   10.96.0.1       <none>        443/TCP          7d23h   <none>
+myfirstservice   NodePort    10.97.120.226   <none>        8000:32000/TCP   56s     type=front-end
+
+root@master:~# curl http://3.23.114.147:32000/
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+```
+
+### Scheduling
+
+#### Manual Scheduling
+
+* To create a pod in any given Node. (To force creation of a pod to your favorite)
+
+```
+root@master:~# kubectl get nodes
+NAME      STATUS   ROLES                  AGE   VERSION
+master    Ready    control-plane,master   8d    v1.21.2
+worker1   Ready    <none>                 8d    v1.21.2
+worker2   Ready    <none>                 8d    v1.21.2
+
+root@master:~# kubectl get pods
+No resources found in default namespace.
+
+root@master:~# kubectl create -f manual-shedule-deployment.yaml
+deployment.apps/manual-shedule-deployment created
+
+root@master:~# kubectl get deployments.apps
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+manual-shedule-deployment   3/3     3            3           26s
+
+root@master:~# kubectl get pods -o wide
+NAME                                         READY   STATUS    RESTARTS   AGE   IP          NODE      NOMINATED NODE   READINESS GATES
+manual-shedule-deployment-7ffdc579cc-kssk6   1/1     Running   0          28s   10.38.0.2   worker2   <none>           <none>
+manual-shedule-deployment-7ffdc579cc-pccfw   1/1     Running   0          28s   10.38.0.1   worker2   <none>           <none>
+manual-shedule-deployment-7ffdc579cc-w7mmv   1/1     Running   0          28s   10.38.0.3   worker2   <none>           <none>
+```
+As you can see all pods are created in worker2 as given in yaml file (manual-shedule-deployment.yaml). 
 
 -------------------------------------------------- DAY 7: --------------------------------------------------
 
