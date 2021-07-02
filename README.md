@@ -1,4 +1,4 @@
-# kubernetes-zynux
+# kubernetes-mynotes
 
 #### Creating a lab Setup for kubernetes cluster:
 
