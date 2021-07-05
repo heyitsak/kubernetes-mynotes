@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+ name: tolerationpod
+spec:
+ containers:
+ - image: nginx:latest
+   name: mypod
+ tolerations:
+ - effect: "NoSchedule"
+   key: "mysize"
+   operator: "Equal"
+   value: "large"
+
+# kubectl taint node worker1 mysize=large:NoSchedule
