@@ -768,6 +768,93 @@ manual-shedule-deployment-7ffdc579cc-w7mmv   1/1     Running   0          28s   
 As you can see all pods are created in worker2 as given in yaml file (manual-shedule-deployment.yaml). 
 
 -------------------------------------------------- DAY 7: --------------------------------------------------
+### Advanced Scheduling
+#### Taint and toleration
 
+Taints:  
+* they allow a node to repel a set of pods.
+* Think of this as some filter set on node
 
+Toleration:
+* Tolerations are applied to pods, and allow (but do not require) the pods to schedule onto nodes with matching taints.
+
+Taints and tolerations work together to ensure that pods are not scheduled onto inappropriate nodes. One or more taints are applied to a node; this marks that the node should not accept any pods that do not tolerate the taints.
+
+Examples:
+* No pods get created to master
+* Because 'taint' is enabled in master node
+* We can remove the 'taint' via configuration then the pods can be created in master or specified node
+* We can set 'taint' for any node
+
+```
+root@master:~# kubectl describe node master | grep -i taint
+Taints:             node-role.kubernetes.io/master:NoSchedule
+root@master:~#
+```
+You add a taint to a node using kubectl taint. For example,
+
+```
+kubectl taint nodes node1 key1=value1:NoSchedule
+```
+* places a taint on node `node1`. The taint has key `key1`, value `value1`, and taint effect `NoSchedule`. 
+* This means that no pod will be able to schedule onto `node1` unless it has a matching toleration.
+
+To remove the taint added by the command above, you can run:
+
+```
+kubectl taint nodes node1 key1=value1:NoSchedule-
+```
+
+#### Setting toleration for pods
+
+Specify toleration for a pod in the `PodSpec`. Both of the following tolerations "match" the taint created by the `kubectl taint` line above, and thus a pod with either toleration would be able to schedule onto `node1`:
+
+More info https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+
+##### Example: 
+
+```
+root@master:~# kubectl describe node worker1 | grep -i taints
+Taints:             <none>
+root@master:~# kubectl describe node worker2 | grep -i taints
+Taints:             <none>
+```
+Setting filter/taint for Worker1
+```
+root@master:~# kubectl taint node worker1 mysize=large:NoSchedule
+node/worker1 tainted
+
+root@master:~# kubectl describe node worker1 | grep -i taints
+Taints:             mysize=large:NoSchedule
+
+root@master:~# kubectl create -f pod-creation-example.yaml
+pod/pod-creation.example.com created
+```
+The Pod got created in `Worker2` as the "pod-creation-example.yaml" didnt have any toleration set to work in `Worker1`.
+```
+root@master:~# kubectl get pods -o wide
+NAME                       READY   STATUS    RESTARTS   AGE   IP          NODE      NOMINATED NODE   READINESS GATES
+pod-creation.example.com   1/1     Running   0          5m    10.38.0.1   worker2   <none>           <none>
+```
+Now creating a Pod which has toleration set and which can work in both Worker1 or Worker2. 
+
+```
+root@master:~# kubectl create -f pod-creation-toleration.yaml
+pod/tolerationpod created
+
+root@master:~# kubectl get pods -o wide
+NAME                       READY   STATUS    RESTARTS   AGE     IP          NODE      NOMINATED NODE   READINESS GATES
+pod-creation.example.com   1/1     Running   0          15m     10.38.0.1   worker2   <none>           <none>
+tolerationpod              1/1     Running   0          5m42s   10.36.0.0   worker1   <none>           <none>
+```
+As you can see, here `tolerationpod ` got created in Worker1 node. 
+
+```
+root@master:~# kubectl taint nodes worker1 mysize=large:NoSchedule-
+node/worker1 untainted
+root@master:~# kubectl describe node worker1 | grep -i taints
+Taints:             <none>
+```
+
+-------------------------------------------------- DAY 8: --------------------------------------------------
 
