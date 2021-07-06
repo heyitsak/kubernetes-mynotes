@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+ name: pod-test.example.com
+ labels:
+  app: myapp1
+  type: front-end
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:latest
+  affinity:
+   nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - preference:
+       matchExpressions:
+       - key: size
+         operator: In
+         values:
+         - extralarge
+      weight: 1
