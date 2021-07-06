@@ -934,17 +934,19 @@ worker1   Ready    <none>                 12d   v1.21.2   beta.kubernetes.io/arc
 
 Two types of scheduling can be done here, 
 
-Soft & Hard
+#### Soft & Hard
 
 ##### Soft: 
 This will try to create a pod matching a label in node. So incase if any node doesn't match the given label then go and schedule in any other nodes.
-```
-preferredDuringSchedulingIgnoredDuringExecution
-```
+
+`preferredDuringSchedulingIgnoredDuringExecution`
+
 ##### Hard: 
 Only create the pod matching label of particular node. 
 
-Example for soft scheduling, 
+`RequiredDuringSchedulingIgnoreduringExecution`
+
+#### Example for `soft scheduling`, 
 
 Set label for two nodes `worker1` & `worker2`, 
 ```
@@ -955,18 +957,114 @@ node/worker2 labeled
 
 root@master:~# kubectl get nodes --show-labels | egrep "worker1|worker2"
 worker1   Ready    <none>                 12d   v1.21.2   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker1,kubernetes.io/os=linux,size=large
+
 worker2   Ready    <none>                 12d   v1.21.2   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker2,kubernetes.io/os=linux,size=small
 ```
 Now define `Node Affinity` for pod in yaml file,
 ```
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:latest
+  affinity:
+   nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - preference:
+       matchExpressions:
+       - key: size
+         operator: In
+         values:
+         - small
+      weight: 1
+```
+Create & run yaml file,
+```
+root@master:~# kubectl create -f pod-creation-nodeaffinity-soft.yaml
+pod/pod-creation.example.com created
 
+root@master:~# kubectl get pods -o wide
+NAME                       READY   STATUS    RESTARTS   AGE   IP          NODE      NOMINATED NODE   READINESS GATES
+pod-creation.example.com   1/1     Running   0          67s   10.38.0.1   worker2   <none>           <none>
+```
+Here you can see that the pod is created on Worker2. 
+
+Now to understand this, try creating a pod which will not match any label (small or large) for nodes and see what happens,
+
+Example pod yaml, 
+```
+  affinity:
+   nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - preference:
+       matchExpressions:
+       - key: size
+         operator: In
+         values:
+         - extralarge
+```
+Here, I have set label as `extralarge` for pod, which obivously doesnt match any of the worker nodes labels.
+```
+root@master:~# kubectl create -f pod-creation-nodeaffinity-soft-testing.yaml
+pod/pod-test.example.com created
+
+root@master:~# kubectl get pods -o wide
+NAME                       READY   STATUS    RESTARTS   AGE     IP          NODE      NOMINATED NODE   READINESS GATES
+pod-creation.example.com   1/1     Running   0          7m25s   10.38.0.1   worker2   <none>           <none>
+pod-test.example.com       1/1     Running   0          84s     10.36.0.0   worker1   <none>           <none>
+```
+Here you can see that the second pod `pod-test.example.com ` got created in `worker1` anyway even if the label doesnt match any of the worker nodes. 
+
+#### Example for `hard scheduling`
+
+`RequiredDuringSchedulingIgnoreduringExecution`
+
+Here I tried to create a pod with nodeaffinity matching label `extralarge`, [Note: we know that there are no nodes with label set as `extralarge`]
+```
+  affinity:
+   nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+     nodeSelectorTerms:
+     - matchExpressions:
+       - key: size
+         operator: In
+         values:
+         - extralarge
+```
+Lets see what happens here,
+```
+root@master:~# kubectl create -f pod-creation-nodeaffinity-hard.yaml
+pod/pod-creation.example.com created
+
+root@master:~# kubectl get pods -o wide
+NAME                       READY   STATUS    RESTARTS   AGE     IP       NODE     NOMINATED NODE   READINESS GATES
+pod-creation.example.com   0/1     Pending   0          2m21s   <none>   <none>   <none>           <none>
 ```
 
+The pod creation is in pending state here, let see why?
+```
+root@master:~# kubectl describe pod pod-creation.example.com
+
+Events:
+  Type     Reason            Age    From               Message
+  ----     ------            ----   ----               -------
+  Warning  FailedScheduling  2m35s  default-scheduler  0/3 nodes are available: 1 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate, 2 node(s) didn't match Pod's node affinity/selector.
+root@master:~#
+```
+
+### Resource
 
 
 
 
-
+### DaemonSets
 
 -------------------------------------------------- DAY 9: --------------------------------------------------
+
+### Static Node
+
+
+### Multiple Schedulers
+
+
+### Metric Server
 
