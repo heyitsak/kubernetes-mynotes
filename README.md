@@ -858,3 +858,115 @@ Taints:             <none>
 
 -------------------------------------------------- DAY 8: --------------------------------------------------
 
+#### NodeSelector Scheduling
+
+* This is used when we want to only schedule particular pods to given nodes
+* Here scheduling is done using `labels`
+* When scheduling no conditions can be given in yaml [limitation of NodeSelector]
+* **For the pod to be eligible to run on a node, the node must have each of the indicated key-value pairs as labels (it can have additional labels as well). The most common usage is one key-value pair.**
+
+Steps: 
+
+```
+root@master:~# kubectl get nodes
+NAME      STATUS   ROLES                  AGE   VERSION
+master    Ready    control-plane,master   12d   v1.21.2
+worker1   Ready    <none>                 12d   v1.21.2
+worker2   Ready    <none>                 12d   v1.21.2
+
+root@master:~# kubectl get nodes --show-labels
+NAME      STATUS   ROLES                  AGE   VERSION   LABELS
+master    Ready    control-plane,master   12d   v1.21.2   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node-role.kubernetes.io/master=,node.kubernetes.io/exclude-from-external-load-balancers=
+worker1   Ready    <none>                 12d   v1.21.2   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker1,kubernetes.io/os=linux
+worker2   Ready    <none>                 12d   v1.21.2   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker2,kubernetes.io/os=linux
+```
+
+Assigning label for `worker1` node,
+```
+root@master:~# kubectl label nodes worker1 size=large
+node/worker1 labeled
+
+root@master:~# kubectl get nodes --show-labels | grep worker1
+worker1   Ready    <none>                 12d   v1.21.2   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker1,kubernetes.io/os=linux,size=large
+```
+
+Now create pod which should match the label for `worker1` node `size=large`,
+
+Yaml file for pod,
+```
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:latest
+  nodeSelector:
+    size: "large"
+```
+Creating a pod,
+```
+root@master:~# kubectl create -f pod-creation-nodeselector.yaml
+pod/pod-creation.example.com created
+```
+Now you can see that the pod is created to `worker1` node as we wanted,
+```
+root@master:~# kubectl get pods -o wide
+NAME                       READY   STATUS    RESTARTS   AGE   IP          NODE      NOMINATED NODE   READINESS GATES
+pod-creation.example.com   1/1     Running   0          19s   10.36.0.0   worker1   <none>           <none>
+```
+Now, to remove the label set for node,
+```
+root@master:~# kubectl get nodes --show-labels | grep worker1
+worker1   Ready    <none>                 12d   v1.21.2   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker1,kubernetes.io/os=linux,size=large
+
+root@master:~# kubectl label nodes worker1 size-
+node/worker1 labeled
+
+root@master:~# kubectl get nodes --show-labels | grep worker1
+worker1   Ready    <none>                 12d   v1.21.2   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker1,kubernetes.io/os=linux
+```
+#### Node Affinity Scheduling
+
+* This overcome the limitation of NodeSelector
+* Conditions can be set 
+* Suppose the label for pod doesn't match any of the labels on nodes, then the pod creation will goto pending and will not created. So to avoid such situation we need to write conditions. 
+* Node affinity is a set of rules used by the scheduler to determine where a pod can be placed. 
+* The rules are defined using custom labels on nodes and label selectors specified in pods.
+* For example, you could configure a pod to only run on a node with a specific CPU or in a specific availability zone.
+
+Two types of scheduling can be done here, 
+
+Soft & Hard
+
+##### Soft: 
+This will try to create a pod matching a label in node. So incase if any node doesn't match the given label then go and schedule in any other nodes.
+```
+preferredDuringSchedulingIgnoredDuringExecution
+```
+##### Hard: 
+Only create the pod matching label of particular node. 
+
+Example for soft scheduling, 
+
+Set label for two nodes `worker1` & `worker2`, 
+```
+root@master:~# kubectl label node worker1 size=large
+node/worker1 labeled
+root@master:~# kubectl label node worker2 size=small
+node/worker2 labeled
+
+root@master:~# kubectl get nodes --show-labels | egrep "worker1|worker2"
+worker1   Ready    <none>                 12d   v1.21.2   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker1,kubernetes.io/os=linux,size=large
+worker2   Ready    <none>                 12d   v1.21.2   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker2,kubernetes.io/os=linux,size=small
+```
+Now define `Node Affinity` for pod in yaml file,
+```
+
+```
+
+
+
+
+
+
+
+-------------------------------------------------- DAY 9: --------------------------------------------------
+
