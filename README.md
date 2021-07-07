@@ -1051,13 +1051,92 @@ Events:
 root@master:~#
 ```
 
-### Resource
+### Resource Limits Scheduling
+
+* Think of nodes like servers, each node has thier own resources for `CPU, MEM, DISK`. 
+* And every pod consumes a set of resources on the nodes
+* If the nodes doesn't have enough resources available - then the kube-scheduler will not allocate new pods to it [You will see the pod status will be in pending state]. 
+
+Resource requirement for each pods:
+
+* By default kubernetes assumes that a pod and container within a pod requires `CPU (0.5), MEM (256Mi)`, this is know as the `resource requests` for a container. The minimum amount of CPU or MEM requested by a container. 
+
+* If your applications require more than these limits, you can modify the pod definition file. 
+
+Resource requests for pod can specified as,
+```
+resources:
+ requests:
+  memory: "1Gi"
+  cpu: "1"
+```
+By any chance if pod try to utlize more resources, the kubernetes by default has set a resource limit of `1vCPU` & `512Mi` for pod usage. 
+
+Resource limits for pod can specified as,
+```
+resources:
+ requests:
+  memory: "1Gi"
+  cpu: "1"
+ limits:
+  memory: "2Gi"
+  cpu: "2"
+```
+So here when the pod is created using the above definition. The kubernetes sets new limits for the container. **Remember the limits and requests are set for each containers within the pod.**
+
+Exceed Limits: What if any pod try over use CPU or MEM? 
+
+Kubernets won't allow the pod to overuse the given CPU limit. However the case for memory is different, incase the pod constantly overuses memory on node then the pod will get auto terminated.
 
 
+### DaemonSets Scheduling
 
+* Daemon sets are like replica sets, like they run multiple instance of pod in nodes. 
+* The main difference here is, the daemon set only creats one copy of pod in each node. 
+* And whenever a new node is added to the cluster a replica of pod is placed into that node.
+* **It ensures that always one copy of pod is present in all nodes in the cluster**
 
-### DaemonSets
+Use cases:
 
+* Say if you want to deploy a `monitoring solution` or `log viewer/collector` on your cluster so you can monitor your each of your nodes in cluster better. Here you dont need to worry about adding or removing monitoring agent from cluster, as daemon set will take care of this for you. 
+
+* Kube-proxy component can be example of daemon set. As this can also be deployed using daemon set. 
+* N/w area, example weave network on each nodes
+
+Examples with DaemonSets,
+
+How many DaemonSets are created in the cluster in all namespaces?
+```
+root@controlplane:~# kubectl get daemonsets
+No resources found in default namespace.
+root@controlplane:~# kubectl get daemonsets --all-namespaces
+NAMESPACE     NAME              DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+kube-system   kube-flannel-ds   1         1         1       1            1           <none>                   7m2s
+kube-system   kube-proxy        1         1         1       1            1           kubernetes.io/os=linux   7m7s
+```
+Find the image used by the POD deployed by the kube-flannel-ds DaemonSet?
+```
+root@controlplane:~# kubectl describe daemonsets -n kube-system kube-flannel-ds | grep -i image
+    Image:      quay.io/coreos/flannel:v0.13.1-rc1
+    Image:      quay.io/coreos/flannel:v0.13.1-rc1
+```
+Now deploy a DaemonSet for FluentD Logging,
+
+An easy way to create a DaemonSet is to first generate a YAML file for a Deployment with the command,
+```
+root@controlplane:~# kubectl create deployment elasticsearch --image=k8s.gcr.io/fluentd-elasticsearch:1.20 -n kube-system --dry-run=client -o yaml > fluentd.yaml
+```
+Next, remove the replicas and strategy fields from the YAML file using a text editor. Also, change the kind from Deployment to DaemonSet. And finally, create the Daemonset by running kubectl create -f fluentd.yaml
+```
+root@controlplane:~# kubectl create -f fluentd.yaml
+daemonset.apps/elasticsearch created
+
+root@controlplane:~# kubectl get daemonset -n kube-system
+NAME              DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+elasticsearch     1         1         0       1            0           <none>                   41s
+kube-flannel-ds   1         1         1       1            1           <none>                   21m
+kube-proxy        1         1         1       1            1           kubernetes.io/os=linux   21m
+```
 -------------------------------------------------- DAY 9: --------------------------------------------------
 
 ### Static Node
@@ -1067,4 +1146,5 @@ root@master:~#
 
 
 ### Metric Server
+-------------------------------------------------- DAY 10: --------------------------------------------------
 
