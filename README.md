@@ -1141,10 +1141,111 @@ kube-proxy        1         1         1       1            1           kubernete
 
 ### Static Node
 
+* Static pods are usually used by software bootstrapping kubernetes itself. 
+* For example, kubeadm uses static pods to bringup kubernetes control plane components like api-server, controller-manager as static pods.
+* A kubelet can manage a node idependently 
+* Static Pods are managed directly by the kubelet daemon on a specific node, without the API server 
+
+Consider if there is no master node or controlpane, then how will you create a pod on a worker node with only kubelet present, 
+
+* You can configure a kubelet to read the pod definition files from a directory `/etc/kubernetes/manifests`.
+* Kubelet constantly monitors this directory for pod definition and makes changes to pods. 
+* If we remove a file from this directory, the pod is removed automatically.
+* We can only create pod using pod definition in this dir. 
+* We cant create any replicaset or deployments or any other from this dir. 
+* Kubelet works at pod level and can only understand pods.
+* **So basically we can say that the pods created from this directoryby kublet without the intervention of api server are called `static pods`.**
+
+This could be any directory `/etc/kubernetes/manifests`, so how do we configure one? 
+
+![Screenshot 2021-07-07 at 7 25 38 PM](https://user-images.githubusercontent.com/29716063/124771970-36d5d980-df59-11eb-91c1-efa933e9a93d.png)
+
+Another method using `--config path`
+
+![Screenshot 2021-07-07 at 7 27 36 PM](https://user-images.githubusercontent.com/29716063/124772255-80262900-df59-11eb-928c-3466a3a924de.png)
+
+Example, 
+
+How many static pods exist in this cluster in all namespaces?
+
+Run the command `kubectl get pods --all-namespaces` and look for those with `-controlplane` appended in the name
+
+```
+root@controlplane:~# kubectl get pods --all-namespaces
+NAMESPACE     NAME                                   READY   STATUS    RESTARTS   AGE
+kube-system   coredns-74ff55c5b-bn2l8                1/1     Running   0          6m12s
+kube-system   coredns-74ff55c5b-t8n74                1/1     Running   0          6m9s
+kube-system   etcd-controlplane                      1/1     Running   0          6m15s
+kube-system   kube-apiserver-controlplane            1/1     Running   0          6m15s
+kube-system   kube-controller-manager-controlplane   1/1     Running   0          6m15s
+kube-system   kube-flannel-ds-s799x                  1/1     Running   0          6m13s
+kube-system   kube-flannel-ds-stskc                  1/1     Running   0          5m19s
+kube-system   kube-proxy-fl68w                       1/1     Running   0          5m20s
+kube-system   kube-proxy-sscnq                       1/1     Running   0          6m13s
+kube-system   kube-scheduler-controlplane            1/1     Running   0          6m15s
+```
+Or 
+```
+root@controlplane:~# cd /etc/kubernetes/manifests/
+root@controlplane:/etc/kubernetes/manifests# ll
+total 28
+drwxr-xr-x 1 root root 4096 Jul  7 13:54 ./
+drwxr-xr-x 1 root root 4096 Jul  7 13:54 ../
+-rw------- 1 root root 2177 Jul  7 13:54 etcd.yaml
+-rw------- 1 root root 3802 Jul  7 13:54 kube-apiserver.yaml
+-rw------- 1 root root 3314 Jul  7 13:54 kube-controller-manager.yaml
+-rw------- 1 root root 1384 Jul  7 13:54 kube-scheduler.yaml
+```
+We can see there are 4 static pods here, since pod def are present inside this manifest dir. 
+
+On which nodes are the static pods created currently?
+```
+root@controlplane:~# kubectl get nodes
+NAME           STATUS   ROLES                  AGE   VERSION
+controlplane   Ready    control-plane,master   12m   v1.20.0
+node01         Ready    <none>                 10m   v1.20.0
+
+root@controlplane:~# kubectl get pods --all-namespaces -o wide
+NAMESPACE     NAME                                   READY   STATUS    RESTARTS   AGE   IP            NODE           NOMINATED NODE   READINESS GATES
+kube-system   coredns-74ff55c5b-bn2l8                1/1     Running   0          11m   10.244.0.3    controlplane   <none>           <none>
+kube-system   coredns-74ff55c5b-t8n74                1/1     Running   0          11m   10.244.0.2    controlplane   <none>           <none>
+kube-system   etcd-controlplane                      1/1     Running   0          11m   10.18.91.9    controlplane   <none>           <none>
+kube-system   kube-apiserver-controlplane            1/1     Running   0          11m   10.18.91.9    controlplane   <none>           <none>
+kube-system   kube-controller-manager-controlplane   1/1     Running   0          11m   10.18.91.9    controlplane   <none>           <none>
+kube-system   kube-flannel-ds-s799x                  1/1     Running   0          11m   10.18.91.9    controlplane   <none>           <none>
+kube-system   kube-flannel-ds-stskc                  1/1     Running   0          11m   10.18.91.12   node01         <none>           <none>
+kube-system   kube-proxy-fl68w                       1/1     Running   0          11m   10.18.91.12   node01         <none>           <none>
+kube-system   kube-proxy-sscnq                       1/1     Running   0          11m   10.18.91.9    controlplane   <none>           <none>
+kube-system   kube-scheduler-controlplane            1/1     Running   0          11m   10.18.91.9    controlplane   <none>           <none>
+root@controlplane:~# 
+```
+Create a static pod named static-busybox that uses the busybox image and the command sleep 1000,
+```
+root@controlplane:~# kubectl run --restart=Never --image=busybox static-busybox --dry-run=client -o yaml --command -- sleep 1000 > /etc/kubernetes/manifests/static-busybox.yaml
+
+root@controlplane:~# kubectl get pods --all-namespaces -o wide
+NAMESPACE     NAME                                   READY   STATUS    RESTARTS   AGE    IP            NODE           NOMINATED NODE   READINESS GATES
+default       static-busybox-controlplane            1/1     Running   0          118s   10.244.0.4    controlplane   <none>           <none>
+```
+How to find the manifest or static pod dir/path?
+
+Look for the pod yaml in dir `/etc/kubernetes/manifests/` if pod definition is not there then do,
+```
+root@node01:/etc/kubernetes/manifests# ps aux | grep kubelet
+root     12447  0.0  0.0 3780872 96440 ?       Ssl  14:18   0:08 /usr/bin/kubelet --bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf --config=/var/lib/kubelet/config.yaml --network-plugin=cni --pod-infra-container-image=k8s.gcr.io/pause:3.2
+```
+From here we got to know the `--config=/var/lib/kubelet/config.yaml`, 
+```
+root@node01:~# cat /var/lib/kubelet/config.yaml | grep staticPodPath:
+staticPodPath: /etc/just-to-mess-with-you
+```
+Thats It!
 
 ### Multiple Schedulers
 
 
 ### Metric Server
+
+
 -------------------------------------------------- DAY 10: --------------------------------------------------
 
