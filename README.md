@@ -1364,7 +1364,135 @@ root@controlplane:~# kubectl describe deployments.apps frontend | grep Image
 ```
 ### Commands & Arguments in Docker
 
+![Screenshot 2021-07-11 at 9 26 20 PM](https://user-images.githubusercontent.com/29716063/125201928-d9aa9280-e28e-11eb-9053-f5b8afd486a2.png)
 
+What is the command used to run the pod ubuntu-sleeper?
+```
+root@controlplane:~# kubectl get pods
+NAME             READY   STATUS    RESTARTS   AGE
+ubuntu-sleeper   1/1     Running   0          112s
+root@controlplane:~# kubectl describe pod ubuntu-sleeper | grep -i command:
+    Command:
+       sleep
+      4800
+      
+Ans:  Sleep 4800
+```
+Create a pod with the ubuntu image to run a container to sleep for 5000 seconds,
+```
+root@controlplane:~# cat ubuntu-sleeper-2.yaml
+apiVersion: v1 
+kind: Pod 
+metadata:
+  name: ubuntu-sleeper-2 
+spec:
+  containers:
+  - name: ubuntu
+    image: ubuntu
+    command:
+     - "sleep"
+     - "5000"
+     
+root@controlplane:~#  kubectl create -f ubuntu-sleeper-2.yaml
+pod/ubuntu-sleeper-2 created     
+```
+Inspect the file Dockerfile given at /root/webapp-color. What command is run at container startup? [python app.py]
+```
+root@controlplane:~/webapp-color# cat Dockerfile
+FROM python:3.6-alpine
+
+RUN pip install flask
+
+COPY . /opt/
+
+EXPOSE 8080
+
+WORKDIR /opt
+
+ENTRYPOINT ["python", "app.py"]
+```
+Inspect the file Dockerfile2 given at /root/webapp-color. What command is run at container startup? [python app.py --color red]
+```
+root@controlplane:~/webapp-color# cat Dockerfile2 
+FROM python:3.6-alpine
+
+RUN pip install flask
+
+COPY . /opt/
+
+EXPOSE 8080
+
+WORKDIR /opt
+
+ENTRYPOINT ["python", "app.py"]
+
+CMD ["--color", "red"]
+```
+Inspect the two files under directory webapp-color-2. What command is run at container startup? Assume the image was created from the Dockerfile in this folder.
+```
+root@controlplane:~/webapp-color-2# cat Dockerfile2
+FROM python:3.6-alpine
+
+RUN pip install flask
+
+COPY . /opt/
+
+EXPOSE 8080
+
+WORKDIR /opt
+
+ENTRYPOINT ["python", "app.py"]
+
+CMD ["--color", "red"]
+
+root@controlplane:~/webapp-color-2# cat webapp-color-pod.yaml
+apiVersion: v1 
+kind: Pod 
+metadata:
+  name: webapp-green
+  labels:
+      name: webapp-green 
+spec:
+  containers:
+  - name: simple-webapp
+    image: kodekloud/webapp-color
+    command: ["--color","green"]
+```
+The ENTRYPOINT in the Dockerfile is overridden by the command in the pod definition.
+
+Ex 2:
+
+```
+root@controlplane:~/webapp-color-3# cat Dockerfile2
+FROM python:3.6-alpine
+
+RUN pip install flask
+
+COPY . /opt/
+
+EXPOSE 8080
+
+WORKDIR /opt
+
+ENTRYPOINT ["python", "app.py"]
+
+CMD ["--color", "red"]
+
+root@controlplane:~/webapp-color-3# cat webapp-color-pod-2.yaml
+apiVersion: v1 
+kind: Pod 
+metadata:
+  name: webapp-green
+  labels:
+      name: webapp-green 
+spec:
+  containers:
+  - name: simple-webapp
+    image: kodekloud/webapp-color
+    command: ["python", "app.py"]
+    args: ["--color", "pink"]
+```
+Inspect the command and args in the pod definition file [python app.py --color pink]
 
 -------------------------------------------------- DAY 11: --------------------------------------------------
 
