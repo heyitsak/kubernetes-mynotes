@@ -1243,14 +1243,126 @@ Thats It!
 
 ### Multiple Schedulers
 
+If the default scheduler does not suit your needs you can implement your own scheduler. ... Moreover, you can even run multiple schedulers simultaneously alongside the default scheduler and instruct Kubernetes what scheduler to use for each of your pods.
+
+```
+Default scheduler:
+
+root@controlplane:~# kubectl get pods -n kube-system
+NAME                                   READY   STATUS    RESTARTS   AGE
+kube-scheduler-controlplane            1/1     Running   0          7m9s
+
+/etc/kubernetes/manifests/kube-scheduler.yaml
+```
+
+Creating a pod with your custom scheduler,
+```
+apiVersion: v1 
+kind: Pod 
+metadata:
+  name: nginx 
+spec:
+  schedulerName: my-scheduler
+  containers:
+  - image: nginx
+    name: nginx
+    
+    
+root@controlplane:~# kubectl explain pod --recursive | less
+root@controlplane:~# vim /root/nginx-pod.yaml 
+root@controlplane:~# kubectl create -f nginx-pod.yaml 
+pod/nginx created
+```
 
 ### Metric Server
 
+* To monitor kubernetes each of nodes and pods
+* This is in-memory monitoring solution and doesnt store data on disk
+* How are metric generated for pods in this nodes? Kubernetes runs an agent on each node (kubelet). Thisalso contains c-advisor (retreving performance data). 
 
+```
+root@controlplane:~/kubernetes-metrics-server# kubectl top node
+NAME           CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%   
+controlplane   302m         0%     963Mi           0%        
+node01         204m         0%     687Mi           0%   
+
+root@controlplane:~/kubernetes-metrics-server# kubectl top pods
+NAME       CPU(cores)   MEMORY(bytes)   
+elephant   37m          52Mi            
+lion       2m           7Mi             
+rabbit     104m         203Mi  
+```
+
+Imp:
+
+```
+kubectl top pods -l app=myapp
+```
 -------------------------------------------------- DAY 10: --------------------------------------------------
-### Application logs
+### Managing application logs
+
+```
+root@controlplane:~# kubectl get pods
+NAME       READY   STATUS    RESTARTS   AGE
+webapp-1   1/1     Running   0          29s
+root@controlplane:~# kubectl logs -f webapp-1
+```
+
+Check logs,
+```
+root@controlplane:~# kubectl logs -f webapp-1
+[2021-07-11 12:05:58,104] INFO in event-simulator: USER3 logged in
+[2021-07-11 12:05:59,106] INFO in event-simulator: USER4 is viewing page2
+[2021-07-11 12:06:00,107] INFO in event-simulator: USER3 is viewing page2
+[2021-07-11 12:06:01,109] INFO in event-simulator: USER3 is viewing page1
+[2021-07-11 12:06:02,110] INFO in event-simulator: USER4 logged out
+[2021-07-11 12:06:03,112] WARNING in event-simulator: USER5 Failed to Login as the account is locked due to MANY FAILED ATTEMPTS.
+[2021-07-11 12:06:03,112] INFO in event-simulator: USER3 logged out
+[2021-07-11 12:06:04,113] INFO in event-simulator: USER4 logged in
+[2021-07-11 12:06:05,114] INFO in event-simulator: USER3 is viewing page2
+
+root@controlplane:~# kubectl logs -f webapp-2 simple-webapp 
+root@controlplane:~# kubectl logs -f webapp-2 -c simple-webapp 
+```
 
 ### Rolling update & Rollback in deployment
+
+Rollout & versioning in a deployment
+
+* When you first create a deployment it triggers a rollout
+* A new rollout create a new deployment revisons
+
+There are two deployment strategy:
+
+* Recreate pods (Application downtime)
+* Rolling update (Default deployment strategy)
+
+
+```
+root@controlplane:~# 
+root@controlplane:~# kubectl get deployment
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+frontend   4/4     4            4           3m1s
+
+root@controlplane:~# kubectl describe deployments.apps frontend
+Name:                   frontend
+Namespace:              default
+RollingUpdateStrategy:  25% max unavailable, 25% max surge.      // strategy default
+```
+If you were to upgrade the application now what would happen? >> PODs are upgraded few at a time
+
+Update current deployment by modifying the image to version 2,
+```
+root@controlplane:~# kubectl describe deployments.apps frontend | grep Image 
+    Image:        kodekloud/webapp-color:v1
+    
+root@controlplane:~# kubectl edit deployments.apps frontend 
+deployment.apps/frontend edited
+
+root@controlplane:~# kubectl describe deployments.apps frontend | grep Image 
+    Image:        kodekloud/webapp-color:v2
+```
+### Commands & Arguments in Docker
 
 
 
