@@ -1496,3 +1496,70 @@ Inspect the command and args in the pod definition file [python app.py --color p
 
 -------------------------------------------------- DAY 11: --------------------------------------------------
 
+### ConfigMaps
+
+* API object used to store non-confidential data in key-value pairs.
+*  Pods can consume ConfigMaps as environment variables, command-line arguments, or as configuration files in a volume.
+
+What is the environment variable name set on the container in the pod?,
+```
+root@controlplane:~# kubectl get pods
+NAME           READY   STATUS    RESTARTS   AGE
+webapp-color   1/1     Running   0          26s
+
+root@controlplane:~# kubectl describe pod webapp-color | grep Environment:
+Name:         webapp-color
+   Ready:          True
+    Restart Count:  0
+    Environment:
+      APP_COLOR:  pink
+```
+Update the environment variable on the POD to display a green background
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    name: webapp-color
+  name: webapp-color
+  namespace: default
+spec:
+  containers:
+  - env:
+    - name: APP_COLOR
+      value: green
+    image: kodekloud/webapp-color
+    name: webapp-color
+```
+How many ConfigMaps exist in the environment?
+```
+root@controlplane:~# kubectl get configmaps
+NAME               DATA   AGE
+db-config          3      11s
+kube-root-ca.crt   1      13m
+```
+Identify the database host from the config map db-config
+```
+root@controlplane:~# kubectl describe configmaps db-config
+Name:         db-config
+Namespace:    default
+Labels:       <none>
+Annotations:  <none>
+
+Data
+====
+DB_HOST:
+----
+SQL01.example.com
+DB_NAME:
+----
+SQL01
+DB_PORT:
+----
+3306
+Events:  <none>
+```
+
+
+
+
