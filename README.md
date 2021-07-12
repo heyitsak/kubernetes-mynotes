@@ -1559,7 +1559,39 @@ DB_PORT:
 3306
 Events:  <none>
 ```
+Create a new ConfigMap for the webapp-color POD. Use the spec given below.
+```
+root@controlplane:~# kubectl get pods
+NAME           READY   STATUS    RESTARTS   AGE
+webapp-color   1/1     Running   0          6m34s
 
+root@controlplane:~# kubectl create configmap webapp-config-map --from-literal=APP_COLOR=darkblue
+configmap/webapp-color created
 
+root@controlplane:~# kubectl get configmaps
+NAME               DATA   AGE
+db-config          3      6m29s
+kube-root-ca.crt   1      19m
+webapp-config-map       1      17s
+```
+Update the environment variable on the POD to use the newly created ConfigMap
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    name: webapp-color
+  name: webapp-color
+  namespace: default
+spec:
+  containers:
+  - envFrom:
+    - configMapRef:
+       name: webapp-config-map
+    image: kodekloud/webapp-color
+    name: webapp-color
+```
+
+### Secrets
 
 
