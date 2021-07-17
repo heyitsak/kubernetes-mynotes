@@ -1687,4 +1687,126 @@ spec:
   - name: gold
     image: redis
 ```
+### Init containers
+* In a multi-container pod, each container is expected to run a process that stays alive as long as the POD's lifecycle. 
+* For example in the multi-container pod that has a web application and logging agent, both the containers are expected to stay alive at all times. 
+* The process running in the log agent container is expected to stay alive as long as the web application is running. If any of them fails, the POD restarts.
 
+But at times you may want to run a process that runs to completion in a container. For example a process that pulls a code or binary from a repository that will be used by the main web application. `That is a task that will be run only one time when the pod is first created`. Or a process that waits for an external service or database to be up before the actual application starts. That's where initContainers comes in.
+
+An initContainer is configured in a pod like all other containers, except that it is specified inside a initContainers section, like this:
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox:1.28
+    command: ['sh', '-c', 'echo The app is running! && sleep 3600']
+  initContainers:
+  - name: init-myservice
+    image: busybox
+    command: ['sh', '-c', 'git clone <some-repository-that-will-be-used-by-application> ;']
+```
+When a POD is first created the initContainer is run, and the process in the initContainer must run to a completion before the real container hosting the application starts. 
+
+You can configure multiple such initContainers as well, like how we did for multi-pod containers. In that case each init container is run one at a time in sequential order.
+
+If any of the initContainers fail to complete, Kubernetes restarts the Pod repeatedly until the Init Container succeeds.
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox:1.28
+    command: ['sh', '-c', 'echo The app is running! && sleep 3600']
+  initContainers:
+  - name: init-myservice
+    image: busybox:1.28
+    command: ['sh', '-c', 'until nslookup myservice; do echo waiting for myservice; sleep 2; done;']
+  - name: init-mydb
+    image: busybox:1.28
+    command: ['sh', '-c', 'until nslookup mydb; do echo waiting for mydb; sleep 2; done;']
+```
+
+https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+
+Identify the pod that has an initContainer configured.
+```
+root@controlplane:~# kubectl get pods
+NAME    READY   STATUS    RESTARTS   AGE
+blue    1/1     Running   0          2m8s
+
+
+root@controlplane:~# kubectl describe pod blue | grep -i init
+Init Containers:
+  init-myservice:
+    Container ID:  docker://da280c78c83cc5997012a075180297988b707d7f53cb72cddd307a0da85f090f
+    Image:         busybox
+    Image ID:      docker-pullable://busybox@sha256:0f354ec1728d9ff32edcd7d1b8bbdfc798277ad36120dc3dc683be44524c8b60
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      sh
+      -c
+      sleep 5
+    State:          Terminated
+      Reason:       Completed
+      Exit Code:    0
+      Started:      Sat, 17 Jul 2021 14:50:23 +0000
+      Finished:     Sat, 17 Jul 2021 14:50:28 +0000
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-kk4wn (ro)
+```
+How long after the creation of the POD will the application come up and be available to users?
+
+`Check the commands used in the initContainers. The first one sleeps for 600 seconds (10 minutes) and the second one sleeps for 1200 seconds (20 minutes)`
+
+Update the pod red to use an initContainer that uses the busybox image and sleeps for 20 seconds
+```
+root@controlplane:~# kubectl get pods
+NAME     READY   STATUS     RESTARTS   AGE
+blue     1/1     Running    0          8m47s
+green    2/2     Running    0          8m47s
+purple   0/1     Init:0/2   0          4m32s
+red      1/1     Running    0          8m48s
+
+root@controlplane:~# vim red.yaml
+root@controlplane:~# kubectl apply -f red.yaml 
+pod/red created
+```
+A new application orange is deployed. There is something wrong with it. Identify and fix the issue.
+```
+root@controlplane:~# kubectl get pods orange
+NAME     READY   STATUS                  RESTARTS   AGE
+orange   0/1     Init:CrashLoopBackOff   2          47s
+```
+There is a typo in the command used by the initContainer. To fix this, first get the pod definition file by running 
+`kubectl get pod orange -o yaml > /root/orange.yaml.`
+Next, edit the command and fix the typo.
+Then, delete the old pod by running `kubectl delete pod orange`
+Finally, create the pod again by running `kubectl create -f /root/orange.yaml`
+
+### Self Healing Application
+
+* Kubernetes supports self-healing applications through ReplicaSets and Replication Controllers. 
+* The replication controller helps in ensuring that a POD is re-created automatically when the application within the POD crashes. It helps in ensuring enough replicas of the application are running at all times.
+
+`Kubernetes provides additional support to check the health of applications running within PODs and take necessary actions through Liveness and Readiness Probes.`
+
+## Cluster Maintenance
+
+### OS Upgrades
