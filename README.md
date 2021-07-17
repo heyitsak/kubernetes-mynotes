@@ -1594,4 +1594,97 @@ spec:
 
 ### Secrets
 
+Create a new secret named db-secret with the data given below,
+```
+root@controlplane:~# kubectl get pods
+NAME         READY   STATUS    RESTARTS   AGE
+mysql        1/1     Running   0          79s
+webapp-pod   1/1     Running   0          79s
+
+root@controlplane:~# kubectl create secret generic db-secret --from-literal=DB_Host=sql01 --from-literal=DB_User=root --from-literal=DB_Password=password123
+secret/db-secret created
+
+root@controlplane:~# kubectl get secrets
+NAME                  TYPE                                  DATA   AGE
+db-secret             Opaque                                3      9s
+default-token-mltkw   kubernetes.io/service-account-token   3      14m
+
+root@controlplane:~# kubectl describe secret db-secret          Name:         db-secret
+Namespace:    default
+Labels:       <none>
+Annotations:  <none>
+
+Type:  Opaque
+
+Data
+====
+DB_Host:      5 bytes
+DB_Password:  11 bytes
+DB_User:      4 bytes
+```
+Configure webapp-pod to load environment variables from the newly created secret.
+```
+root@controlplane:~# kubectl get pods
+NAME         READY   STATUS    RESTARTS   AGE
+mysql        1/1     Running   0          79s
+webapp-pod   1/1     Running   0          79s
+
+root@controlplane:~# kubectl edit pod webapp-pod
+
+Add the below in containers line,
+
+envFrom:
+    - secretRef:
+        name: db-secret
+	
+OR delete old pod and create a new one with below,
+
+Pod Yaml:
+
+apiVersion: v1 
+kind: Pod 
+metadata:
+  labels:
+    name: webapp-pod
+  name: webapp-pod
+  namespace: default 
+spec:
+  containers:
+  - image: kodekloud/simple-webapp-mysql
+    imagePullPolicy: Always
+    name: webapp
+    envFrom:
+    - secretRef:
+        name: db-secret
+
+```
+### Multi container POD's
+
+* The multi-container pods are the pods that contain two or more related containers that share resources like network space, shared volumes, etc and work together as a single unit.
+* The primary purpose of a multi-container Pod is to support co-located, co-managed helper processes for a main program. There are some general patterns of using helper processes in Pods:
+
+Identify the name of the containers running in the 'blue' pod (teal and navy)
+```
+controlplane $ kubectl get pods
+NAME   READY   STATUS    RESTARTS   AGE
+blue   2/2     Running   0          11s
+red    3/3     Running   0          34s
+
+controlplane $ kubectl describe pod blue
+```
+Create a mulitpod,
+```
+controlplane $ cat yellowpod.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+  name: yellow
+spec:
+  containers:
+  - image: busybox
+    name: lemon
+  - name: gold
+    image: redis
+```
 
